@@ -3,80 +3,161 @@ pragma solidity ^0.8.9;
 import "hardhat/console.sol";
 
 contract CampaignCreator {
-  uint256 private id;
+    uint256 private lastId;
 
-  struct Params {
-    uint256 balance;
-    uint256 untilTimestamp;
-    uint256 payout;
-  }
-  
-  struct Campaign {
-    uint256 id;
-    address parent;
-    address payable student;
-    Params params;
-  }
-
-  struct Solution {
-    string ipfsHash;
-    bool isCancelled;
-  }
-
-  mapping (address => Campaign[]) public ownerToCampaignMapping;
-  mapping (uint256 => Campaign) public idToCampaignMapping;
-
-  mapping (uint256 => Solution[]) public idToSolutionsMapping;
-  mapping (uint256 => uint256) public idToWithdrawed;
-
-  constructor() {}
-
-  function createCampaign(address payable student, uint256 untilTimestamp, uint256 payout) public payable {
-    Params memory params = Params(msg.value, untilTimestamp, payout);
-    Campaign memory campaign = Campaign(id, msg.sender, student, params);
-    ownerToCampaignMapping[msg.sender].push(campaign); 
-    idToCampaignMapping[id] = campaign;
-    id++;
-  }
-
-  function submitSolution(uint256 campaignId, string memory ipfsHash) public returns(uint256 id) {
-    id = idToSolutionsMapping[campaignId].length;
-    Solution memory solution = Solution(ipfsHash, false);
-    idToSolutionsMapping[campaignId].push(solution);
-
-    Campaign memory campaign = idToCampaignMapping[campaignId];
-    uint256 solutionsAmount = idToSolutionsMapping[campaignId].length;
-
-    require(campaign.params.balance >= solutionsAmount * campaign.params.payout, 'No funds left on the campaign');
-  }
-
-  function getWithdrawableAmount(uint256 campaignId) public view returns(uint256 amount) {
-    Campaign memory campaign = idToCampaignMapping[campaignId];
-    require(campaign.params.untilTimestamp >= block.timestamp, 'Your campaign expired');
-
-    uint256 solutionsAmount = idToSolutionsMapping[campaignId].length;
-    uint256 withdrawed = idToWithdrawed[campaignId];
-
-    amount = solutionsAmount * campaign.params.payout - withdrawed;
-  }
-
-  function withdraw(uint256 campaignId) public {
-    Solution[] memory solutions = idToSolutionsMapping[campaignId];
-
-    for(uint256 id; id < solutions.length; id++) {
-      require(solutions[id].isCancelled != true, 'Cannot withdraw, there is a cancelled solution');
+    struct Params {
+        uint256 balance;
+        uint256 untilTimestamp;
+        uint256 payout;
     }
-    uint256 withdrawableAmount = getWithdrawableAmount(campaignId);
-    idToWithdrawed[campaignId] += withdrawableAmount;
 
-    Campaign memory campaign = idToCampaignMapping[campaignId];
-    campaign.student.transfer(withdrawableAmount);  
-  }
+    struct Campaign {
+        uint256 id;
+        address parent;
+        address payable student;
+        Params params;
+    }
 
-  function cancelSolution(uint256 campaignId, uint256 solutionId) public {
-    Campaign memory campaign =  idToCampaignMapping[campaignId];
-    require(msg.sender == campaign.parent, 'Only parent can cancel solution');
+    struct Solution {
+        string ipfsHash;
+        bool isCancelled;
+        bool isWithdrawn;
+    }
 
-    idToSolutionsMapping[campaignId][solutionId].isCancelled = true;
-  }
+    mapping(address => Campaign[]) public ownerToCampaignMapping;
+    mapping(uint256 => Campaign) public idToCampaignMapping;
+
+    mapping(uint256 => Solution[]) public idToSolutionsMapping;
+    mapping(uint256 => uint256) public idToWithdrawed;
+
+    constructor() {}
+
+    function createCampaign(
+        address payable student,
+        uint256 untilTimestamp,
+        uint256 payout
+    ) public payable {
+        Params memory params = Params(msg.value, untilTimestamp, payout);
+        Campaign memory campaign = Campaign(lastId, msg.sender, student, params);
+        ownerToCampaignMapping[msg.sender].push(campaign);
+        idToCampaignMapping[lastId] = campaign;
+        lastId++;
+    }
+
+    function submitSolution(uint256 campaignId, string memory ipfsHash)
+        public
+        returns (uint256 id)
+    {
+        id = idToSolutionsMapping[campaignId].length;
+        Solution memory solution = Solution(ipfsHash, false, false);
+        idToSolutionsMapping[campaignId].push(solution);
+
+        Campaign memory campaign = idToCampaignMapping[campaignId];
+        uint256 solutionsAmount = idToSolutionsMapping[campaignId].length;
+
+        require(
+            campaign.params.balance >= solutionsAmount * campaign.params.payout,
+            "No funds left on the campaign"
+        );
+    }
+
+    function withdraw(uint256 campaignId, uint256[] memory solutionIds)
+        public
+        onlyExistingSolutionIds(campaignId, solutionIds)
+    {
+        Solution[] memory solutions = idToSolutionsMapping[campaignId];
+
+        for (uint256 id; id < solutions.length; id++) {
+            if (
+                solutions[id].isCancelled == true &&
+                solutions[id].isWithdrawn == false
+            ) {
+                revert("Cannot withdraw, there is a cancelled solution");
+            }
+        }
+
+        Campaign memory campaign = idToCampaignMapping[campaignId];
+        uint256 toWithdraw = 0;
+        for (uint256 id = 0; id < solutionIds.length; id++) {
+            uint256 solutionId = solutionIds[id];
+            require(
+                idToSolutionsMapping[campaignId][solutionId].isCancelled !=
+                    true,
+                "Cannot withdraw cancelled solution"
+            );
+            idToSolutionsMapping[campaignId][solutionId].isWithdrawn = true;
+            toWithdraw += campaign.params.payout;
+        }
+        campaign.params.balance -= toWithdraw;
+        campaign.student.transfer(toWithdraw);
+    }
+
+    function cancelSolution(uint256 campaignId, uint256 solutionId)
+        public
+        onlyExistingId(campaignId, solutionId)
+    {
+        Campaign memory campaign = idToCampaignMapping[campaignId];
+        require(
+            msg.sender == campaign.parent,
+            "Only parent can cancel solution"
+        );
+
+        idToSolutionsMapping[campaignId][solutionId].isCancelled = true;
+    }
+
+    function resolveCancelled(uint256 campaignId, uint256[] memory solutionIds)
+        public
+        payable
+        onlyExistingSolutionIds(campaignId, solutionIds)
+    {
+        Campaign memory campaign = idToCampaignMapping[campaignId];
+        uint256 resolveAmount = solutionIds.length * campaign.params.payout;
+        require(
+            msg.value == resolveAmount,
+            "Too little or too much ether provided to resolve those solutions"
+        );
+
+        campaign.params.balance += resolveAmount;
+
+        for (uint256 id = 0; id < solutionIds.length; id++) {
+            uint256 solutionId = solutionIds[id];
+            idToSolutionsMapping[campaignId][solutionId].isWithdrawn = true;
+        }
+    }
+
+    function topUpCampaign(uint256 campaignId) public payable {
+        Campaign memory campaign = idToCampaignMapping[campaignId];
+        require(campaign.params.untilTimestamp >= block.timestamp, 'Cannot top up, campaign has ended');
+
+        idToCampaignMapping[campaignId].params.balance += msg.value;
+    }
+
+    modifier onlyExistingSolutionIds(
+        uint256 campaignId,
+        uint256[] memory solutionIds
+    ) {
+        uint256 maxIndex = getMaxIndex(campaignId);
+        for (uint256 id = 0; id < solutionIds.length; id++) {
+            require(
+                solutionIds[id] <= maxIndex,
+                "Provided solutionIds include non-exisitng ID"
+            );
+        }
+        _;
+    }
+
+    modifier onlyExistingId(uint256 campaignId, uint256 solutionId) {
+        uint256 maxIndex = getMaxIndex(campaignId);
+        require(
+            solutionId <= maxIndex,
+            "Solution with given ID does not exist"
+        );
+        _;
+    }
+
+    function getMaxIndex(uint256 campaignId) public view returns (uint256 maxIndex) {
+        uint256 length = idToSolutionsMapping[campaignId].length;
+        require(length != 0, "Solutions array is empty");
+        maxIndex = length - 1;
+    }
 }
