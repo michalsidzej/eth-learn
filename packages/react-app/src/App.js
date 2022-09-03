@@ -11,7 +11,7 @@ import React, { useEffect, useState } from "react"
 import { Body, Button, Container, Header, Image, Link } from "./components"
 import logo from "./ethereumLogo.png"
 
-import CampaignCreator from "@my-app/contracts/artifacts/contracts/Campaign.sol/CampaignCreator.json"
+import abis from "@my-app/contracts"
 import GET_TRANSFERS from "./graphql/subgraph"
 
 function WalletButton() {
