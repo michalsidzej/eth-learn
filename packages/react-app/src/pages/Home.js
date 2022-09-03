@@ -4,7 +4,7 @@ import React, { useReducer } from "react"
 import { utils } from "ethers"
 import { Contract } from "@ethersproject/contracts"
 
-import { Form, InputsContainer, Input, Label } from "./components"
+import { Form, InputsContainer, Input, Label } from "../components"
 
 function getContract() {
   const address = addresses.CampaignCreator

@@ -1,9 +1,8 @@
 import { useEthers } from "@usedapp/core"
 import React from "react"
-
+import { BrowserRouter, Route, Routes } from "react-router-dom"
 import { Home } from "./pages/Home"
-import { Body, Container, Header, Image } from "./components"
-import logo from "./ethereumLogo.png"
+import { Body, Container, Header } from "./components"
 import { WalletButton } from "./components/WalletButton"
 
 function App() {
@@ -15,8 +14,15 @@ function App() {
         <WalletButton />
       </Header>
       <Body>
-        <Image src={logo} alt="ethereum-logo" />
-        {account ? <Home /> : <p>Connect your wallet to start learning!</p>}
+        {account ? (
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Home />} />
+            </Routes>
+          </BrowserRouter>
+        ) : (
+          <p>Connect your wallet to start learning!</p>
+        )}
       </Body>
     </Container>
   )
