@@ -1,5 +1,9 @@
 {
   "name": "@my-app/contracts",
   "version": "1.0.0",
-  "main": "./src/index.js"
+  "main": "./src/index.js",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
+    "hardhat": "^2.11.0"
+  }
 }
