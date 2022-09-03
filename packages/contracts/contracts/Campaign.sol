@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 import "hardhat/console.sol";
 
 contract CampaignCreator {
-    uint256 private id;
+    uint256 private lastId;
 
     struct Params {
         uint256 balance;
@@ -38,11 +38,10 @@ contract CampaignCreator {
         uint256 payout
     ) public payable {
         Params memory params = Params(msg.value, untilTimestamp, payout);
-        Campaign memory campaign = Campaign(id, msg.sender, student, params);
+        Campaign memory campaign = Campaign(lastId, msg.sender, student, params);
         ownerToCampaignMapping[msg.sender].push(campaign);
-        idToCampaignMapping[id] = campaign;
-        idToSolutionsMapping[id] = [];
-        id++;
+        idToCampaignMapping[lastId] = campaign;
+        lastId++;
     }
 
     function submitSolution(uint256 campaignId, string memory ipfsHash)
@@ -126,11 +125,18 @@ contract CampaignCreator {
         }
     }
 
+    function topUpCampaign(uint256 campaignId) public payable {
+        Campaign memory campaign = idToCampaignMapping[campaignId];
+        require(campaign.params.untilTimestamp >= block.timestamp, 'Cannot top up, campaign has ended');
+
+        idToCampaignMapping[campaignId].params.balance += msg.value;
+    }
+
     modifier onlyExistingSolutionIds(
         uint256 campaignId,
         uint256[] memory solutionIds
     ) {
-        uint256 maxIndex = idToSolutionsMapping[campaignId].length - 1;
+        uint256 maxIndex = getMaxIndex(campaignId);
         for (uint256 id = 0; id < solutionIds.length; id++) {
             require(
                 solutionIds[id] <= maxIndex,
@@ -141,11 +147,17 @@ contract CampaignCreator {
     }
 
     modifier onlyExistingId(uint256 campaignId, uint256 solutionId) {
-        uint256 maxIndex = idToSolutionsMapping[campaignId].length - 1;
+        uint256 maxIndex = getMaxIndex(campaignId);
         require(
             solutionId <= maxIndex,
             "Solution with given ID does not exist"
         );
         _;
+    }
+
+    function getMaxIndex(uint256 campaignId) public view returns (uint256 maxIndex) {
+        uint256 length = idToSolutionsMapping[campaignId].length;
+        require(length != 0, "Solutions array is empty");
+        maxIndex = length - 1;
     }
 }

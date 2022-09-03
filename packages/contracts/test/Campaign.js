@@ -12,6 +12,7 @@ describe("CampaignCreator", function() {
     return campaignCreator;
   }
 
+
   async function createCampaign(campaignCreator, payout = 10) {
     const ONE_HOUR_IN_SECS = 60 * 60;
     const [parent, student] = await ethers.getSigners();
@@ -68,17 +69,6 @@ describe("CampaignCreator", function() {
         campaignCreator.connect(student).withdraw(campaignId, [0, 1, 2])
       ).to.changeEtherBalance(student, 3);
     });
-
-    it("throws if solution does not exist", async function() {
-      const campaignCreator = await deployCampaignCreator();
-      const payout = 1;
-      const campaignId = await createCampaign(campaignCreator, payout);
-      const [parent, student] = await ethers.getSigners();
-
-      await expect(
-        campaignCreator.connect(student).withdraw(campaignId, [69, 420])
-      ).to.be.revertedWith("Provided solutionIds include non-exisitng ID");
-    })
   });
 
   describe("cancelSolution", async function() {
@@ -168,6 +158,59 @@ describe("CampaignCreator", function() {
       await expect(
         campaignCreator.connect(student).withdraw(campaignId, [0, 1, 2])
       ).to.be.revertedWith("Cannot withdraw cancelled solution");
+    });
+  });
+
+  describe("topUpCampaign", async function() {
+    it("can top up", async function() {
+      const campaignCreator = await deployCampaignCreator();
+      const payout = 1;
+      const campaignId = await createCampaign(campaignCreator, payout);
+      const [parent, student] = await ethers.getSigners();
+
+      await expect(
+        campaignCreator
+          .connect(parent)
+          .topUpCampaign(campaignId, { value: 100 })
+      ).to.changeEtherBalance(campaignCreator.address, 100);
+    });
+  });
+
+  describe("onlyExistingIds", async function() {
+    it("throws if solution does not exist", async function() {
+      const campaignCreator = await deployCampaignCreator();
+      const payout = 1;
+      const campaignId = await createCampaign(campaignCreator, payout);
+      const [parent, student] = await ethers.getSigners();
+
+      await expect(
+        campaignCreator.connect(student).withdraw(campaignId, [69, 420])
+      ).to.be.revertedWith("Solutions array is empty");
+
+      await campaignCreator.connect(student).submitSolution(campaignId, "FILE");
+
+      await expect(
+        campaignCreator.connect(student).withdraw(campaignId, [69, 420])
+      ).to.be.revertedWith("Provided solutionIds include non-exisitng ID");
+    });
+  });
+
+  describe("onlyExistingId", async function() {
+    it("throws if solution does not exist", async function() {
+      const campaignCreator = await deployCampaignCreator();
+      const payout = 1;
+      const campaignId = await createCampaign(campaignCreator, payout);
+      const [parent, student] = await ethers.getSigners();
+
+      await expect(
+        campaignCreator.connect(student).cancelSolution(campaignId, 69)
+      ).to.be.revertedWith("Solutions array is empty");
+
+      await campaignCreator.connect(student).submitSolution(campaignId, "FILE");
+
+      await expect(
+        campaignCreator.connect(student).cancelSolution(campaignId, 69)
+      ).to.be.revertedWith("Solution with given ID does not exist");
     });
   });
 });
