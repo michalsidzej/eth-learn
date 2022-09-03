@@ -34,6 +34,43 @@ describe("CampaignCreator", function() {
     return campaignId
   }
 
+  describe("createCampaign", function() {
+    it("deposits ether", async function() {
+      const [owner, student] = await ethers.getSigners()
+
+      const campaignCreator = await deployCampaignCreator()
+
+      await expect(
+        campaignCreator.createCampaign(
+          student.address,
+          await time.latest(),
+          10,
+          {
+            value: 10,
+          }
+        )
+      ).to.changeEtherBalance(owner, -10)
+    })
+  })
+
+  describe("withdraw", async function() {
+    it("withdraws ether", async function() {
+      const campaignCreator = await deployCampaignCreator()
+      const campaignId = await createCampaign(campaignCreator)
+
+      const [_, student] = await ethers.getSigners()
+      campaignCreator.connect(student).submitSolution(campaignId, "")
+
+      const withdrawable = await campaignCreator
+        .connect(student)
+        .getWithdrawableAmount(campaignId)
+
+      await expect(
+        campaignCreator.connect(student).withdraw(campaignId)
+      ).to.changeEtherBalance(student, withdrawable)
+    })
+  })
+
   describe("getWithdrawableAmount", async function() {
     it("returns 0 when no solutions", async function() {
       const campaignCreator = await deployCampaignCreator()
@@ -65,8 +102,8 @@ describe("CampaignCreator", function() {
       const campaignId = await createCampaign(campaignCreator, payout)
 
       const [_, student] = await ethers.getSigners()
-      campaignCreator.connect(student).submitSolution(campaignId, "")
-      campaignCreator.connect(student).withdraw(campaignId)
+      await campaignCreator.connect(student).submitSolution(campaignId, "")
+      await campaignCreator.connect(student).withdraw(campaignId)
 
       await expect(
         await campaignCreator.connect(student).getWithdrawableAmount(campaignId)
