@@ -20,9 +20,9 @@ describe("CampaignCreator", function() {
 
     await campaignCreator.createCampaign(
       student.address,
-      100,
       timestamp + ONE_HOUR_IN_SECS,
-      payout
+      payout,
+      { value: 10 }
     )
 
     const campaign = await campaignCreator.ownerToCampaignMapping(
@@ -57,6 +57,20 @@ describe("CampaignCreator", function() {
       await expect(
         await campaignCreator.connect(student).getWithdrawableAmount(campaignId)
       ).to.equal(payout)
+    })
+
+    it("returns 0 when withdrawed", async function() {
+      const campaignCreator = await deployCampaignCreator()
+      const payout = 10
+      const campaignId = await createCampaign(campaignCreator, payout)
+
+      const [_, student] = await ethers.getSigners()
+      campaignCreator.connect(student).submitSolution(campaignId, "")
+      campaignCreator.connect(student).withdraw(campaignId)
+
+      await expect(
+        await campaignCreator.connect(student).getWithdrawableAmount(campaignId)
+      ).to.equal(0)
     })
   })
 })

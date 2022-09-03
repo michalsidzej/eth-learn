@@ -12,7 +12,7 @@ contract CampaignCreator {
   
   struct Campaign {
     uint256 id;
-    address student;
+    address payable student;
     Params params;
   }
 
@@ -24,12 +24,12 @@ contract CampaignCreator {
   mapping (uint256 => Campaign) public idToCampaignMapping;
 
   mapping (uint256 => Solution[]) public idToSolutionsMapping;
-  mapping (uint256 => uint256) public idToSolutionWithdrawalsAmountMapping;
+  mapping (uint256 => uint256) public idToWithdrawed;
 
   constructor() {}
 
-  function createCampaign(address student, uint256 amount, uint256 untilTimestamp, uint256 payout) public  {
-    Params memory params = Params(amount, untilTimestamp, payout);
+  function createCampaign(address payable student, uint256 untilTimestamp, uint256 payout) public payable {
+    Params memory params = Params(msg.value, untilTimestamp, payout);
     Campaign memory campaign = Campaign(id, student, params);
     ownerToCampaignMapping[msg.sender].push(campaign); 
     idToCampaignMapping[id] = campaign;
@@ -39,16 +39,28 @@ contract CampaignCreator {
   function submitSolution(uint256 campaignId, string memory ipfsHash) public {
     Solution memory solution = Solution(ipfsHash);
     idToSolutionsMapping[campaignId].push(solution);
+
+    Campaign memory campaign = idToCampaignMapping[campaignId];
+    uint256 solutionsAmount = idToSolutionsMapping[campaignId].length;
+
+    require(campaign.params.balance >= solutionsAmount * campaign.params.payout, 'No funds left on the campaign');
   }
 
   function getWithdrawableAmount(uint256 campaignId) public view returns(uint256 amount) {
     Campaign memory campaign = idToCampaignMapping[campaignId];
-    require(campaign.student == msg.sender, 'You are not a student of this campaign');
     require(campaign.params.untilTimestamp >= block.timestamp, 'Your campaign expired');
 
     uint256 solutionsAmount = idToSolutionsMapping[campaignId].length;
-    uint256 withdrawedSolutions = idToSolutionWithdrawalsAmountMapping[campaignId];
+    uint256 withdrawed = idToWithdrawed[campaignId];
 
-    amount = (solutionsAmount - withdrawedSolutions) * campaign.params.payout;
+    amount = solutionsAmount * campaign.params.payout - withdrawed;
+  }
+
+  function withdraw(uint256 campaignId) public {
+    uint256 withdrawableAmount = getWithdrawableAmount(campaignId);
+    idToWithdrawed[campaignId] += withdrawableAmount;
+
+    Campaign memory campaign = idToCampaignMapping[campaignId];
+    campaign.student.transfer(withdrawableAmount);  
   }
 }
