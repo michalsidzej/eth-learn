@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.9;
 
 contract CampaignCreator {
@@ -21,11 +22,13 @@ contract CampaignCreator {
 
   mapping (address => Campaign[]) public ownerToCampaignMapping;
   mapping (uint256 => Campaign) public idToCampaignMapping;
-  mapping (uint256 => Solution[]) public idToSolutionMapping;
+
+  mapping (uint256 => Solution[]) public idToSolutionsMapping;
+  mapping (uint256 => uint256) public idToSolutionWithdrawalsAmountMapping;
 
   constructor() {}
 
-  function createCampaign(address student, uint256 amount, uint256 untilTimestamp, uint256 payout) public {
+  function createCampaign(address student, uint256 amount, uint256 untilTimestamp, uint256 payout) public  {
     Params memory params = Params(amount, untilTimestamp, payout);
     Campaign memory campaign = Campaign(id, student, params);
     ownerToCampaignMapping[msg.sender].push(campaign); 
@@ -35,6 +38,17 @@ contract CampaignCreator {
 
   function submitSolution(uint256 campaignId, string memory ipfsHash) public {
     Solution memory solution = Solution(ipfsHash);
-    idToSolutionMapping[campaignId].push(solution);
+    idToSolutionsMapping[campaignId].push(solution);
+  }
+
+  function getWithdrawableAmount(uint256 campaignId) public view returns(uint256 amount) {
+    Campaign memory campaign = idToCampaignMapping[campaignId];
+    require(campaign.student == msg.sender, 'You are not a student of this campaign');
+    require(campaign.params.untilTimestamp >= block.timestamp, 'Your campaign expired');
+
+    uint256 solutionsAmount = idToSolutionsMapping[campaignId].length;
+    uint256 withdrawedSolutions = idToSolutionWithdrawalsAmountMapping[campaignId];
+
+    amount = (solutionsAmount - withdrawedSolutions) * campaign.params.payout;
   }
 }
