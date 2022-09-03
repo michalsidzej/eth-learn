@@ -12,7 +12,7 @@ async function main() {
 
   await campaignCreator.deployed()
 
-  console.log(`Campaign creator deployed to ${lock.address}`)
+  console.log(`Campaign creator deployed to ${campaignCreator.address}`)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

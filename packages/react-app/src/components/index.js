@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled from "styled-components"
 
 export const Body = styled.div`
   align-items: center;
@@ -8,7 +8,7 @@ export const Body = styled.div`
   font-size: calc(10px + 2vmin);
   justify-content: center;
   margin-top: 40px;
-`;
+`
 
 export const Button = styled.button`
   background-color: white;
@@ -21,14 +21,14 @@ export const Button = styled.button`
   padding: 12px 24px;
   text-align: center;
   text-decoration: none;
-`;
+`
 
 export const Container = styled.div`
   background-color: #282c34;
   display: flex;
   flex-direction: column;
   height: calc(100vh);
-`;
+`
 
 export const Header = styled.header`
   align-items: center;
@@ -38,13 +38,13 @@ export const Header = styled.header`
   flex-direction: row;
   justify-content: flex-end;
   min-height: 70px;
-`;
+`
 
 export const Image = styled.img`
   height: 40vmin;
   margin-bottom: 16px;
   pointer-events: none;
-`;
+`
 
 export const Link = styled.a.attrs({
   target: "_blank",
@@ -52,4 +52,15 @@ export const Link = styled.a.attrs({
 })`
   color: #61dafb;
   margin-top: 8px;
-`;
+`
+
+export const Form = styled.form``
+
+export const Label = styled.label``
+
+export const InputsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+`
+
+export const Input = styled.input``
