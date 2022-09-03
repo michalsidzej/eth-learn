@@ -1,15 +1,15 @@
 import "./index.css"
 
-import { DAppProvider, Localhost } from "@usedapp/core"
+import { DAppProvider, Hardhat, Localhost } from "@usedapp/core"
 import React from "react"
 import ReactDOM from "react-dom"
 
 import App from "./App"
 
 const config = {
-  readOnlyChainId: Localhost.chainId,
+  readOnlyChainId: Hardhat.chainId,
   readOnlyUrls: {
-    [Localhost.chainId]: "http://127.0.0.1:8545",
+    [Hardhat.chainId]: "http://127.0.0.1:8545",
   },
 }
 
