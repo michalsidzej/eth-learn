@@ -1,23 +1,25 @@
-import "./index.css"
+import "./index.css";
 
-import { DAppProvider, Hardhat, Localhost } from "@usedapp/core"
-import React from "react"
-import ReactDOM from "react-dom"
+import { DAppProvider, Hardhat, Localhost } from "@usedapp/core";
+import React from "react";
+import ReactDOM from "react-dom";
 
-import App from "./App"
+import { AppWithRouter } from "./App";
 
 const config = {
   readOnlyChainId: Hardhat.chainId,
   readOnlyUrls: {
     [Hardhat.chainId]: "http://127.0.0.1:8545",
   },
-}
+
+  
+};
 
 ReactDOM.render(
   <React.StrictMode>
     <DAppProvider config={config}>
-      <App />
+      <AppWithRouter />
     </DAppProvider>
   </React.StrictMode>,
   document.getElementById("root")
-)
+);

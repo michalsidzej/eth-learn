@@ -1,23 +1,11 @@
 import { useEthers, useContractFunction } from "@usedapp/core";
 import { addresses, abis } from "@my-app/contracts";
-import React, { useReducer } from "react";
+import React, { useReducer, useEffect } from "react";
 import { utils } from "ethers";
 import { Contract } from "@ethersproject/contracts";
-import { Link } from "react-router-dom";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
-import {
-  Body,
-  Container,
-  Header,
-  Image,
-  Form,
-  InputsContainer,
-  Input,
-  Label,
-} from "./components";
-import { WalletButton } from "./components/WalletButton";
-import Deploy from "./components/Learn";
+import { Body, Container, Form, InputsContainer, Input, Label } from "./index";
 
 function getContract() {
   const address = addresses.CampaignCreator;
@@ -51,9 +39,9 @@ function InputWithLabel(props) {
   );
 }
 
-function CreateCampaign() {
+function CreateCampaign(props) {
   const { state, send } = useCampaignCreator("createCampaign");
-  const [formData, setFormData] = useReducer(formReducer, {});
+  const [formData, setFormData] = useReducer(formReducer, {student: props.id});
 
   function createCampaign(student, amount, untilTimestamp, payout) {
     console.log(student, amount, untilTimestamp, payout);
@@ -90,60 +78,20 @@ function CreateCampaign() {
   );
 }
 
-function Main() {
-  return <CreateCampaign />;
+function Main(props) {
+  return <CreateCampaign id={props.id} />;
 }
 
-function App() {
-  const { account } = useEthers();
-
-  return (
-    <Container>
-      <Body>
-        {/* {account ? <Main /> : <p>Connect your wallet to start learning!</p>} */}
-        {account ? (
-          <div>
-            <h3>Copy this link</h3>
-            <h3>Share it with your parent</h3>
-            <h3>Start (L)earning</h3>
-            <span style={{ color: "#90ee90" }}>
-              http://localhost:3000/{account}
-            </span>{" "}
-            <button
-              onClick={() => {
-                console.log(account)
-                navigator.clipboard.writeText(
-                  `http://localhost:3000/learn/${account}`
-                );
-              }}
-            >
-              📋
-            </button>
-          </div>
-        ) : (
-          <p>Connect your wallet to start learning!</p>
-        )}
-        {/* {account} */}
-        {/* {{ account }} */}
-      </Body>
-    </Container>
-  );
-}
-
-export function AppWithRouter() {
-  return (
-    <Container>
-      <Header>
-        <WalletButton />
-      </Header>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<App />}></Route>
-          <Route path="/learn/:id" element={<Deploy />} />
-        </Routes>
-      </BrowserRouter>
-    </Container>
-  );
-}
-
-export default App;
+export default function Deploy() {
+    const { account } = useEthers();
+    let { id } = useParams();
+  
+    return (
+      <Container>
+        <Body>
+          {account ? <Main id={id} /> : <p>Connect your wallet to start learning!</p>}
+          {/* {{ account }} */}
+        </Body>
+      </Container>
+    );
+  }
