@@ -15,12 +15,26 @@ contract CampaignCreator {
     Params params;
   }
 
-  mapping (address => Campaign[]) public campaignMapping;
+  struct Solution {
+    string ipfsHash;
+  }
+
+  mapping (address => Campaign[]) public ownerToCampaignMapping;
+  mapping (uint256 => Campaign) public idToCampaignMapping;
+  mapping (uint256 => Solution[]) public idToSolutionMapping;
 
   constructor() {}
 
   function createCampaign(address student, uint256 amount, uint256 untilTimestamp, uint256 payout) public {
     Params memory params = Params(amount, untilTimestamp, payout);
-    campaignMapping[msg.sender].push(Campaign(id, student, params)); 
+    Campaign memory campaign = Campaign(id, student, params);
+    ownerToCampaignMapping[msg.sender].push(campaign); 
+    idToCampaignMapping[id] = campaign;
+    id++;
+  }
+
+  function submitSolution(uint256 campaignId, string memory ipfsHash) public {
+    Solution memory solution = Solution(ipfsHash);
+    idToSolutionMapping[campaignId].push(solution);
   }
 }
